@@ -23,22 +23,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_MICROPYTHON_EMBED_H
+#define MICROPY_INCLUDED_MICROPYTHON_EMBED_H
 
+#include <stddef.h>
 #include <stdint.h>
 
-// Type definitions for the specific machine
+void mp_embed_init(void *gc_heap, size_t gc_heap_size, void *stack_top);
+void mp_embed_deinit(void);
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+// Only available if MICROPY_ENABLE_COMPILER is enabled.
+void mp_embed_exec_str(const char *src);
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
+// Only available if MICROPY_PERSISTENT_CODE_LOAD is enabled.
+void mp_embed_exec_mpy(const uint8_t *mpy, size_t len);
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#endif // MICROPY_INCLUDED_MICROPYTHON_EMBED_H

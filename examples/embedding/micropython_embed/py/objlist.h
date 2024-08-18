@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_OBJLIST_H
+#define MICROPY_INCLUDED_PY_OBJLIST_H
 
-#include <stdint.h>
+#include "py/obj.h"
 
-// Type definitions for the specific machine
+typedef struct _mp_obj_list_t {
+    mp_obj_base_t base;
+    size_t alloc;
+    size_t len;
+    mp_obj_t *items;
+} mp_obj_list_t;
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+void mp_obj_list_init(mp_obj_list_t *o, size_t n);
+mp_obj_t mp_obj_list_make_new(const mp_obj_type_t *type_in, size_t n_args, size_t n_kw, const mp_obj_t *args);
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
-
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#endif // MICROPY_INCLUDED_PY_OBJLIST_H

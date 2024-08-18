@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2014 Paul Sokolovsky
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_STACKCTRL_H
+#define MICROPY_INCLUDED_PY_STACKCTRL_H
 
-#include <stdint.h>
+// This API is deprecated, please use py/cstack.h instead
 
-// Type definitions for the specific machine
+#include "py/mpconfig.h"
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+#if !MICROPY_PREVIEW_VERSION_2
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+void mp_stack_ctrl_init(void);
+void mp_stack_set_top(void *top);
+mp_uint_t mp_stack_usage(void);
+
+#if MICROPY_STACK_CHECK
+
+void mp_stack_set_limit(mp_uint_t limit);
+void mp_stack_check(void);
+#define MP_STACK_CHECK() mp_stack_check()
+
 #else
-#include <alloca.h>
-#endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#define mp_stack_set_limit(limit) (void)(limit)
+#define MP_STACK_CHECK()
+
+#endif // MICROPY_STACK_CHECK
+
+#endif // !MICROPY_PREVIEW_VERSION_2
+
+#endif // MICROPY_INCLUDED_PY_STACKCTRL_H

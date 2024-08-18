@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,10 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+#include "py/mpstate.h"
 
-// Type definitions for the specific machine
-
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
-
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
+#if MICROPY_DYNAMIC_COMPILER
+mp_dynamic_compiler_t mp_dynamic_compiler = {0};
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+mp_state_ctx_t mp_state_ctx;

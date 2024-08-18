@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_REPL_H
+#define MICROPY_INCLUDED_PY_REPL_H
 
-#include <stdint.h>
+#include "py/mpconfig.h"
+#include "py/misc.h"
+#include "py/mpprint.h"
 
-// Type definitions for the specific machine
+#if MICROPY_HELPER_REPL
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+#if MICROPY_PY_SYS_PS1_PS2
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+const char *mp_repl_get_psx(unsigned int entry);
+
+static inline const char *mp_repl_get_ps1(void) {
+    return mp_repl_get_psx(MP_SYS_MUTABLE_PS1);
+}
+
+static inline const char *mp_repl_get_ps2(void) {
+    return mp_repl_get_psx(MP_SYS_MUTABLE_PS2);
+}
+
 #else
-#include <alloca.h>
+
+static inline const char *mp_repl_get_ps1(void) {
+    return ">>> ";
+}
+
+static inline const char *mp_repl_get_ps2(void) {
+    return "... ";
+}
+
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+bool mp_repl_continue_with_input(const char *input);
+size_t mp_repl_autocomplete(const char *str, size_t len, const mp_print_t *print, const char **compl_str);
+
+#endif
+
+#endif // MICROPY_INCLUDED_PY_REPL_H

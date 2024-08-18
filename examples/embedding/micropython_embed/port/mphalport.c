@@ -24,21 +24,10 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+#include <stdio.h>
+#include "py/mphal.h"
 
-// Type definitions for the specific machine
-
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
-
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
-
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+// Send string of given length to stdout, converting \n to \r\n.
+void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
+    printf("%.*s", (int)len, str);
+}

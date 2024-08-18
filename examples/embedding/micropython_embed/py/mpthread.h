@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_MPTHREAD_H
+#define MICROPY_INCLUDED_PY_MPTHREAD_H
 
-#include <stdint.h>
+#include "py/mpconfig.h"
 
-// Type definitions for the specific machine
+#if MICROPY_PY_THREAD
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+struct _mp_state_thread_t;
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+#ifdef MICROPY_MPTHREADPORT_H
+#include MICROPY_MPTHREADPORT_H
 #else
-#include <alloca.h>
+#include <mpthreadport.h>
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+struct _mp_state_thread_t *mp_thread_get_state(void);
+void mp_thread_set_state(struct _mp_state_thread_t *state);
+mp_uint_t mp_thread_create(void *(*entry)(void *), void *arg, size_t *stack_size);
+mp_uint_t mp_thread_get_id(void);
+void mp_thread_start(void);
+void mp_thread_finish(void);
+void mp_thread_mutex_init(mp_thread_mutex_t *mutex);
+int mp_thread_mutex_lock(mp_thread_mutex_t *mutex, int wait);
+void mp_thread_mutex_unlock(mp_thread_mutex_t *mutex);
+
+#endif // MICROPY_PY_THREAD
+
+#if MICROPY_PY_THREAD && MICROPY_PY_THREAD_GIL
+#include "py/mpstate.h"
+#define MP_THREAD_GIL_ENTER() mp_thread_mutex_lock(&MP_STATE_VM(gil_mutex), 1)
+#define MP_THREAD_GIL_EXIT() mp_thread_mutex_unlock(&MP_STATE_VM(gil_mutex))
+#else
+#define MP_THREAD_GIL_ENTER()
+#define MP_THREAD_GIL_EXIT()
+#endif
+
+#endif // MICROPY_INCLUDED_PY_MPTHREAD_H

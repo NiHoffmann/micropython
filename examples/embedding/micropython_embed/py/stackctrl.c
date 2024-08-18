@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2014 Paul Sokolovsky
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,48 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+// This API is deprecated, please use py/cstack.h instead
 
-// Type definitions for the specific machine
+#include "py/runtime.h"
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+#if !MICROPY_PREVIEW_VERSION_2
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
+#include "py/stackctrl.h"
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+void mp_stack_ctrl_init(void) {
+    #if __GNUC__ >= 13
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdangling-pointer"
+    #endif
+    volatile int stack_dummy;
+    MP_STATE_THREAD(stack_top) = (char *)&stack_dummy;
+    #if __GNUC__ >= 13
+    #pragma GCC diagnostic pop
+    #endif
+}
+
+void mp_stack_set_top(void *top) {
+    MP_STATE_THREAD(stack_top) = top;
+}
+
+mp_uint_t mp_stack_usage(void) {
+    // Assumes descending stack
+    volatile int stack_dummy;
+    return MP_STATE_THREAD(stack_top) - (char *)&stack_dummy;
+}
+
+#if MICROPY_STACK_CHECK
+
+void mp_stack_set_limit(mp_uint_t limit) {
+    MP_STATE_THREAD(stack_limit) = limit;
+}
+
+void mp_stack_check(void) {
+    if (mp_stack_usage() >= MP_STATE_THREAD(stack_limit)) {
+        mp_raise_recursion_depth();
+    }
+}
+
+#endif // MICROPY_STACK_CHECK
+
+#endif // !MICROPY_PREVIEW_VERSION_2

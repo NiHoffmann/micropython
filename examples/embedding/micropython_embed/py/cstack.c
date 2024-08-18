@@ -3,7 +3,8 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2014 Paul Sokolovsky
+ * Copryight (c) 2024 Angus Gratton
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +25,33 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+#include "py/runtime.h"
+#include "py/cstack.h"
 
-// Type definitions for the specific machine
+void mp_cstack_init_with_sp_here(size_t stack_size) {
+    #if __GNUC__ >= 13
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdangling-pointer"
+    #endif
+    volatile int stack_dummy;
+    mp_cstack_init_with_top((void *)&stack_dummy, stack_size);
+    #if __GNUC__ >= 13
+    #pragma GCC diagnostic pop
+    #endif
+}
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+mp_uint_t mp_cstack_usage(void) {
+    // Assumes descending stack
+    volatile int stack_dummy;
+    return MP_STATE_THREAD(stack_top) - (char *)&stack_dummy;
+}
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
+#if MICROPY_STACK_CHECK
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+void mp_cstack_check(void) {
+    if (mp_cstack_usage() >= MP_STATE_THREAD(stack_limit)) {
+        mp_raise_recursion_depth();
+    }
+}
+
+#endif // MICROPY_STACK_CHECK

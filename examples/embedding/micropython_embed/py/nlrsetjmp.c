@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013-2023 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,13 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+#include "py/mpstate.h"
 
-// Type definitions for the specific machine
+#if MICROPY_NLR_SETJMP
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+void nlr_jump(void *val) {
+    MP_NLR_JUMP_HEAD(val, top);
+    longjmp(top->jmpbuf, 1);
+}
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
 #endif
-
-#define MICROPY_MPHALPORT_H "port/mphalport.h"

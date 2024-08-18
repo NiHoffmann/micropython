@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_PARSENUM_H
+#define MICROPY_INCLUDED_PY_PARSENUM_H
 
-#include <stdint.h>
+#include "py/mpconfig.h"
+#include "py/lexer.h"
+#include "py/obj.h"
 
-// Type definitions for the specific machine
+// these functions raise a SyntaxError if lex!=NULL, else a ValueError
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+mp_obj_t mp_parse_num_integer(const char *restrict str, size_t len, int base, mp_lexer_t *lex);
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+#if MICROPY_PY_BUILTINS_COMPLEX
+mp_obj_t mp_parse_num_decimal(const char *str, size_t len, bool allow_imag, bool force_complex, mp_lexer_t *lex);
+
+static inline mp_obj_t mp_parse_num_float(const char *str, size_t len, bool allow_imag, mp_lexer_t *lex) {
+    return mp_parse_num_decimal(str, len, allow_imag, false, lex);
+}
+
+static inline mp_obj_t mp_parse_num_complex(const char *str, size_t len, mp_lexer_t *lex) {
+    return mp_parse_num_decimal(str, len, true, true, lex);
+}
 #else
-#include <alloca.h>
+mp_obj_t mp_parse_num_float(const char *str, size_t len, bool allow_imag, mp_lexer_t *lex);
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#endif // MICROPY_INCLUDED_PY_PARSENUM_H

@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,50 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+// *FORMAT-OFF*
 
-// Type definitions for the specific machine
+#include "py/mpconfig.h"
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+// All the qstr definitions in this file are available as constants.
+// That is, they are in ROM and you can reference them simply as MP_QSTR_xxxx.
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+// qstr configuration passed to makeqstrdata.py of the form QCFG(key, value)
+QCFG(BYTES_IN_LEN, MICROPY_QSTR_BYTES_IN_LEN)
+QCFG(BYTES_IN_HASH, MICROPY_QSTR_BYTES_IN_HASH)
+
+Q()
+Q(*)
+Q(_)
+Q(/)
+#if MICROPY_PY_SYS_PS1_PS2
+Q(>>> )
+Q(... )
+#endif
+#if MICROPY_PY_BUILTINS_STR_OP_MODULO
+Q(%#o)
+Q(%#x)
 #else
-#include <alloca.h>
+Q({:#o})
+Q({:#x})
+#endif
+Q({:#b})
+Q( )
+Q(\n)
+Q(maximum recursion depth exceeded)
+Q(<module>)
+Q(<lambda>)
+Q(<listcomp>)
+Q(<dictcomp>)
+Q(<setcomp>)
+Q(<genexpr>)
+Q(<string>)
+Q(<stdin>)
+Q(utf-8)
+
+#if MICROPY_MODULE_FROZEN
+Q(.frozen)
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#if MICROPY_ENABLE_PYSTACK
+Q(pystack exhausted)
+#endif

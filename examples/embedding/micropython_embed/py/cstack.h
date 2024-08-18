@@ -3,7 +3,8 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2014 Paul Sokolovsky
+ * Copyright (c) 2024 Angus Gratton
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +24,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_CSTACK_H
+#define MICROPY_INCLUDED_PY_CSTACK_H
 
-#include <stdint.h>
+#include "py/mpstate.h"
 
-// Type definitions for the specific machine
+// Both init functions below accept the full stack size. Set the
+// MICROPY_STACK_CHECK_MARGIN to the number of bytes subtracted to account
+// for stack usage between checks.
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+void mp_cstack_init_with_sp_here(size_t stack_size);
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
+inline static void mp_cstack_init_with_top(void *top, size_t stack_size) {
+    MP_STATE_THREAD(stack_top) = (char *)top;
+
+    #if MICROPY_STACK_CHECK
+    assert(stack_size > MICROPY_STACK_CHECK_MARGIN); // Should be enforced by port
+    MP_STATE_THREAD(stack_limit) = stack_size - MICROPY_STACK_CHECK_MARGIN;
+    #else
+    (void)stack_size;
+    #endif
+}
+
+mp_uint_t mp_cstack_usage(void);
+
+#if MICROPY_STACK_CHECK
+
+void mp_cstack_check(void);
+
 #else
-#include <alloca.h>
+
+inline static void mp_cstack_check(void) {
+    // No-op when stack checking is disabled
+}
+
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+#endif // MICROPY_INCLUDED_PY_CSTACK_H

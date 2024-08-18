@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013-2019 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_PY_OBJMODULE_H
+#define MICROPY_INCLUDED_PY_OBJMODULE_H
 
-#include <stdint.h>
+#include "py/obj.h"
 
-// Type definitions for the specific machine
-
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
-
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
+#ifndef NO_QSTR
+// Only include module definitions when not doing qstr extraction, because the
+// qstr extraction stage also generates this module definition header file.
+#include "genhdr/moduledefs.h"
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+extern const mp_map_t mp_builtin_module_map;
+extern const mp_map_t mp_builtin_extensible_module_map;
+
+mp_obj_t mp_module_get_builtin(qstr module_name, bool extensible);
+
+void mp_module_generic_attr(qstr attr, mp_obj_t *dest, const uint16_t *keys, mp_obj_t *values);
+
+#endif // MICROPY_INCLUDED_PY_OBJMODULE_H

@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,32 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-
-// Type definitions for the specific machine
-
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
-
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
+
+#include "py/obj.h"
+
+#if !MICROPY_OBJ_IMMEDIATE_OBJS
+typedef struct _mp_obj_none_t {
+    mp_obj_base_t base;
+} mp_obj_none_t;
 #endif
 
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
+static void none_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void)self_in;
+    if (MICROPY_PY_JSON && kind == PRINT_JSON) {
+        mp_print_str(print, "null");
+    } else {
+        mp_print_str(print, "None");
+    }
+}
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    mp_type_NoneType,
+    MP_QSTR_NoneType,
+    MP_TYPE_FLAG_NONE,
+    print, none_print
+    );
+
+#if !MICROPY_OBJ_IMMEDIATE_OBJS
+const mp_obj_none_t mp_const_none_obj = {{&mp_type_NoneType}};
+#endif

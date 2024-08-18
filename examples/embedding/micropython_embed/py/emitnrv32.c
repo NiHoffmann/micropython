@@ -1,9 +1,9 @@
 /*
- * This file is part of the MicroPython project, http://micropython.org/
+ * This file is part of the MicroPython project, https://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2022-2023 Damien P. George
+ * Copyright (c) 2024 Alessandro Gatti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,21 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
+// RISC-V RV32 specific stuff
 
-// Type definitions for the specific machine
+#include "py/mpconfig.h"
 
-typedef intptr_t mp_int_t; // must be pointer size
-typedef uintptr_t mp_uint_t; // must be pointer size
-typedef long mp_off_t;
+#if MICROPY_EMIT_RV32
 
-// Need to provide a declaration/definition of alloca()
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#elif defined(_WIN32)
-#include <malloc.h>
-#else
-#include <alloca.h>
+// this is defined so that the assembler exports generic assembler API macros
+#define GENERIC_ASM_API (1)
+#include "py/asmrv32.h"
+
+// Word indices of REG_LOCAL_x in nlr_buf_t
+#define NLR_BUF_IDX_LOCAL_1 (6) // S3
+
+#define N_RV32 (1)
+#define EXPORT_FUN(name) emit_native_rv32_##name
+#include "py/emitnative.c"
+
 #endif
-
-#define MICROPY_MPHALPORT_H "port/mphalport.h"
