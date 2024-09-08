@@ -1369,6 +1369,7 @@ pending_exception_check:
         } else {
 exception_handler:
             // exception occurred
+            //ORB_INTERRUPT WAS TRIGGERED WE JUST IGNORE ALL EXECUTION LOGIC AND RETURN
 
             #if MICROPY_PY_SYS_EXC_INFO
             MP_STATE_VM(cur_exception) = nlr.ret_val;
@@ -1447,7 +1448,14 @@ unwind_loop:
                 POP_EXC_BLOCK();
             }
 
-            if (exc_sp >= exc_stack) {
+
+
+            if (exc_sp >= exc_stack
+                //this part of the code handles try/catch blocks, we dont want them to be treated as such, if orb interrupts treate any error as un-handled
+                #ifdef ORB_ENABLE_INTERRUPT
+                && !MP_STATE_VM(orb_interrupt)
+                #endif
+                ) {
                 // catch exception and pass to byte code
                 code_state->ip = exc_sp->handler;
                 mp_obj_t *sp = MP_TAGPTR_PTR(exc_sp->val_sp);
@@ -1475,11 +1483,8 @@ unwind_loop:
                 // variables that are visible to the exception handler (declared volatile)
                 exc_sp = MP_CODE_STATE_EXC_SP_IDX_TO_PTR(exc_stack, code_state->exc_sp_idx); // stack grows up, exc_sp points to top of stack
                 goto unwind_loop;
-
             #endif
             } else {
-                // propagate exception to higher level
-                // Note: ip and sp don't have usable values at this point
                 code_state->state[0] = MP_OBJ_FROM_PTR(nlr.ret_val); // put exception here because sp is invalid
                 FRAME_LEAVE();
                 return MP_VM_RETURN_EXCEPTION;
