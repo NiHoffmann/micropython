@@ -307,6 +307,27 @@ outer_dispatch_loop:
             // loop to execute byte code
             for (;;) {
 dispatch_loop:
+                //This is the Main Logic, orb_interrupt will only ever be written from outside mp
+                //so this flag is never a race condition
+                //inside here we create the exception so we never get mem error
+                //we have to do this at the top to bypass controll flow
+                #ifdef ORB_ENABLE_INTERRUPT
+                if(MP_STATE_VM(orb_interrupt)){
+                    static mp_obj_exception_t system_exit;
+                    system_exit.base.type = &mp_type_SystemExit;
+                    //since this is a user interrupt the traceback will be empty
+                    system_exit.traceback_alloc = 0;
+                    system_exit.traceback_data = NULL;
+
+                    //we pass a single argument in our tuple, the error message
+                    system_exit.args = (mp_obj_tuple_t*) mp_obj_new_tuple(1, NULL);
+                    mp_obj_t mp_str = mp_obj_new_str("User Interrupt", 14);
+                    system_exit.args->items[0] = mp_str;
+                    MP_STATE_THREAD(mp_pending_exception) = &system_exit;
+                    MP_STATE_VM(orb_interrupt_injected) = true;
+                }
+                #endif
+
                 #if MICROPY_OPT_COMPUTED_GOTO
                 DISPATCH();
                 #else
@@ -1449,11 +1470,10 @@ unwind_loop:
             }
 
 
-
             if (exc_sp >= exc_stack
                 //this part of the code handles try/catch blocks, we dont want them to be treated as such, if orb interrupts treate any error as un-handled
                 #ifdef ORB_ENABLE_INTERRUPT
-                && !MP_STATE_VM(orb_interrupt)
+                && !MP_STATE_VM(orb_interrupt_injected)
                 #endif
                 ) {
                 // catch exception and pass to byte code
