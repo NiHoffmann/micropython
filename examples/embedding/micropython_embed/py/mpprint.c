@@ -572,5 +572,6 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
         }
         ++fmt;
     }
+    prtinf(chrs);
     return chrs;
 }

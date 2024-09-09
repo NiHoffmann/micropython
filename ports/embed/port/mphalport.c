@@ -33,7 +33,7 @@
 // Send string of given length to stdout, converting \n to \r\n.
 void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
     #ifdef ORB_ENABLE_MONITOR_STD_OUT
-        setMonitorText(str, len);
+        setMonitorText(str, (int)len);
     #else
         printf("%.*s", (int)len, str);
     #endif
