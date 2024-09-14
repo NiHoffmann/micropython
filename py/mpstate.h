@@ -240,7 +240,6 @@ typedef struct _mp_state_vm_t {
 
     #if ORB_ENABLE_INTERRUPT
     bool orb_interrupt;
-    bool orb_interrupt_injected;
     #endif
 
     #if MICROPY_PY_THREAD_GIL

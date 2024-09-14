@@ -323,8 +323,7 @@ dispatch_loop:
                     system_exit.args = (mp_obj_tuple_t*) mp_obj_new_tuple(1, NULL);
                     mp_obj_t mp_str = mp_obj_new_str("User Interrupt", 14);
                     system_exit.args->items[0] = mp_str;
-                    MP_STATE_THREAD(mp_pending_exception) = &system_exit;
-                    MP_STATE_VM(orb_interrupt_injected) = true;
+                    nlr_raise(&system_exit);
                 }
                 #endif
 
@@ -1471,10 +1470,6 @@ unwind_loop:
 
 
             if (exc_sp >= exc_stack
-                //this part of the code handles try/catch blocks, we dont want them to be treated as such, if orb interrupts treate any error as un-handled
-                #ifdef ORB_ENABLE_INTERRUPT
-                && !MP_STATE_VM(orb_interrupt_injected)
-                #endif
                 ) {
                 // catch exception and pass to byte code
                 code_state->ip = exc_sp->handler;

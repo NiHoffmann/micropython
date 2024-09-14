@@ -600,6 +600,25 @@ MP_DEFINE_CONST_FUN_OBJ_0(mp_builtin_locals_obj, mp_builtin_locals);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_id_obj, mp_obj_id);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_len_obj, mp_obj_len);
 
+#if ORB_ENABLE_INTERRUPT
+static mp_obj_t mp_exit(void) {
+	static mp_obj_exception_t system_exit;
+	system_exit.base.type = &mp_type_SystemExit;
+	//since this is a user interrupt the traceback will be empty
+	system_exit.traceback_alloc = 0;
+	system_exit.traceback_data = NULL;
+
+	//we pass a single argument in our tuple, the error message
+	system_exit.args = (mp_obj_tuple_t*) mp_obj_new_tuple(1, NULL);
+	mp_obj_t mp_str = mp_obj_new_str("Exit", 4);
+	system_exit.args->items[0] = mp_str;
+	nlr_raise(&system_exit);
+	
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(mp_exit_obj, mp_exit);
+#endif
+
 static const mp_rom_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_builtins) },
 
@@ -611,6 +630,10 @@ static const mp_rom_map_elem_t mp_module_builtins_globals_table[] = {
     // built-in types
     { MP_ROM_QSTR(MP_QSTR_bool), MP_ROM_PTR(&mp_type_bool) },
     { MP_ROM_QSTR(MP_QSTR_bytes), MP_ROM_PTR(&mp_type_bytes) },
+
+    #if ORB_ENABLE_INTERRUPT
+    { MP_ROM_QSTR(MP_QSTR_exit), MP_ROM_PTR(&mp_exit_obj) },
+    #endif // ORB_ENABLE_INTERRUPT
     #if MICROPY_PY_BUILTINS_BYTEARRAY
     { MP_ROM_QSTR(MP_QSTR_bytearray), MP_ROM_PTR(&mp_type_bytearray) },
     #endif
