@@ -238,6 +238,25 @@ typedef struct _mp_state_vm_t {
     nlr_buf_t *nlr_abort;
     #endif
 
+    #if ORB_ENABLE_INTERRUPT
+    bool orb_interrupt;
+    bool orb_interrupt_injected;
+
+        #ifdef ORB_ABORT_ON_GC_COLLECT_FAIL
+        bool orb_gc_abort;
+        #endif
+
+    #endif
+    
+    #if ORB_ARGS
+    uint8_t arg;
+    #endif
+
+    #if ORB_ENABLE_EXIT_STATUS
+    uint8_t orb_exit_status;
+    char* orb_exit_message;
+    #endif
+
     #if MICROPY_PY_THREAD_GIL
     // This is a global mutex used to make the VM/runtime thread-safe.
     mp_thread_mutex_t gil_mutex;

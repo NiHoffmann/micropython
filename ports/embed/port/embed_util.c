@@ -32,11 +32,19 @@
 #include "py/stackctrl.h"
 #include "shared/runtime/gchelper.h"
 #include "port/micropython_embed.h"
+#include "mphalport.h"
+#include "mpconfigport.h"
 
 // Initialise the runtime.
 void mp_embed_init(void *gc_heap, size_t gc_heap_size, void *stack_top) {
+    #ifdef ORB_ENABLE_MONITOR_STD_OUT
+    reset_std_out();
+    #endif
     mp_stack_set_top(stack_top);
     gc_init(gc_heap, (uint8_t *)gc_heap + gc_heap_size);
+    #ifdef ORB_ENABLED_AUTOMATIC_GC
+        initialize_heap_threshold(gc_heap_size);
+    #endif
     mp_init();
 }
 
@@ -54,7 +62,9 @@ void mp_embed_exec_str(const char *src) {
         nlr_pop();
     } else {
         // Uncaught exception: print it out.
+        #ifndef ORB_ENABLE_MONITOR_STD_OUT
         mp_obj_print_exception(&mp_plat_print, (mp_obj_t)nlr.ret_val);
+        #endif
     }
 }
 #endif
@@ -74,7 +84,9 @@ void mp_embed_exec_mpy(const uint8_t *mpy, size_t len) {
         nlr_pop();
     } else {
         // Uncaught exception: print it out.
+        #ifndef ORB_ENABLE_MONITOR_STD_OUT
         mp_obj_print_exception(&mp_plat_print, (mp_obj_t)nlr.ret_val);
+        #endif
     }
 }
 #endif
@@ -82,6 +94,9 @@ void mp_embed_exec_mpy(const uint8_t *mpy, size_t len) {
 // Deinitialise the runtime.
 void mp_embed_deinit(void) {
     mp_deinit();
+    #ifdef ORB_ENABLE_MONITOR_STD_OUT
+    reset_std_out();
+    #endif
 }
 
 #if MICROPY_ENABLE_GC

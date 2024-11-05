@@ -35,6 +35,7 @@
 #include "py/builtin.h"
 #include "py/stream.h"
 
+
 #if MICROPY_PY_BUILTINS_FLOAT
 #include <math.h>
 #endif
@@ -600,6 +601,34 @@ MP_DEFINE_CONST_FUN_OBJ_0(mp_builtin_locals_obj, mp_builtin_locals);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_id_obj, mp_obj_id);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_len_obj, mp_obj_len);
 
+#if ORB_EXIT
+static mp_obj_t mp_exit(void) {
+	static mp_obj_exception_t system_exit;
+	system_exit.base.type = &mp_type_SystemExit;
+	//since this is a user interrupt the traceback will be empty
+	system_exit.traceback_alloc = 0;
+	system_exit.traceback_data = NULL;
+
+	//we pass a single argument in our tuple, the error message
+	system_exit.args = (mp_obj_tuple_t*) mp_obj_new_tuple(1, NULL);
+	mp_obj_t mp_str = mp_obj_new_str("Exit", 4);
+	system_exit.args->items[0] = mp_str;
+    MP_STATE_VM(orb_interrupt_injected) = true;
+    //since we are not in the disptach loop we have to actually raise the error.
+	nlr_raise(&system_exit);
+
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(mp_exit_obj, mp_exit);
+#endif
+
+#if ORB_ARGS
+static mp_obj_t mp_get_arg(void) {
+    return mp_obj_new_int(MP_STATE_VM(arg));
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(mp_get_arg_obj, mp_get_arg);
+#endif
+
 static const mp_rom_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_builtins) },
 
@@ -611,6 +640,13 @@ static const mp_rom_map_elem_t mp_module_builtins_globals_table[] = {
     // built-in types
     { MP_ROM_QSTR(MP_QSTR_bool), MP_ROM_PTR(&mp_type_bool) },
     { MP_ROM_QSTR(MP_QSTR_bytes), MP_ROM_PTR(&mp_type_bytes) },
+
+    #if ORB_EXIT
+    { MP_ROM_QSTR(MP_QSTR_exit), MP_ROM_PTR(&mp_exit_obj) },
+    #endif
+    #if ORB_ARGS
+    { MP_ROM_QSTR(MP_QSTR_getArg), MP_ROM_PTR(&mp_get_arg_obj) },
+    #endif
     #if MICROPY_PY_BUILTINS_BYTEARRAY
     { MP_ROM_QSTR(MP_QSTR_bytearray), MP_ROM_PTR(&mp_type_bytearray) },
     #endif

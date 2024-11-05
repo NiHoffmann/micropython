@@ -307,6 +307,54 @@ outer_dispatch_loop:
             // loop to execute byte code
             for (;;) {
 dispatch_loop:
+                #ifdef ORB_ENABLED_AUTOMATIC_GC
+                    check_heap_and_trigger_gc();
+                #endif
+
+                //This is the Main Logic, orb_interrupt will only ever be written from outside mp
+                //so this flag is never a race condition
+                //inside here we create the exception so we never get mem error
+                //we have to do this at the top to bypass controll flow
+                #ifdef ORB_ENABLE_INTERRUPT
+                if(MP_STATE_VM(orb_interrupt)) {
+                    static mp_obj_t mp_str;
+                    static mp_obj_exception_t system_exit;
+                    system_exit.base.type = &mp_type_SystemExit;
+                    system_exit.args = MP_OBJ_TO_PTR(mp_obj_new_tuple(1, NULL));
+                    //since this is a user interrupt the traceback will be empty
+                    system_exit.traceback_alloc = 0;
+                    system_exit.traceback_data = NULL;
+
+                    //we pass a single argument in our tuple, the error message
+                    system_exit.args = (mp_obj_tuple_t*) mp_obj_new_tuple(1, NULL);
+
+                    #ifdef ORB_ABORT_ON_GC_COLLECT_FAIL
+                    if(MP_STATE_VM(orb_gc_abort)){
+                        mp_str = mp_obj_new_str("GC Abort", 8);
+                    }else{
+                    #endif
+                        mp_str = mp_obj_new_str("User Interrupt", 14);
+                    #ifdef ORB_ABORT_ON_GC_COLLECT_FAIL
+                    }
+                    #endif
+
+                    system_exit.args->items[0] = mp_str;
+
+                    //we could user nlr_raise here to interrupt controll flow, i prefer the smooth way
+                    //we just keep the controll flow but inject an exception
+                    MP_STATE_THREAD(mp_pending_exception) = &system_exit;
+                    MP_STATE_VM(orb_interrupt_injected) = true;
+                #ifdef ORB_ENABLE_EXIT_STATUS
+                    #ifdef ORB_ABORT_ON_GC_COLLECT_FAIL
+                    if(MP_STATE_VM(orb_gc_abort)){
+                        MP_STATE_VM(orb_exit_status) = ORB_EXIT_GC_ABORT;
+                    }else
+                    #endif
+                        MP_STATE_VM(orb_exit_status) = ORB_EXIT_INTERRUPT;
+                #endif
+                }
+                #endif
+
                 #if MICROPY_OPT_COMPUTED_GOTO
                 DISPATCH();
                 #else
@@ -1447,7 +1495,12 @@ unwind_loop:
                 POP_EXC_BLOCK();
             }
 
-            if (exc_sp >= exc_stack) {
+
+            if (exc_sp >= exc_stack
+                #ifdef ORB_ENABLE_INTERRUPT
+                && !MP_STATE_VM(orb_interrupt_injected)
+                #endif
+                ) {
                 // catch exception and pass to byte code
                 code_state->ip = exc_sp->handler;
                 mp_obj_t *sp = MP_TAGPTR_PTR(exc_sp->val_sp);
@@ -1475,12 +1528,52 @@ unwind_loop:
                 // variables that are visible to the exception handler (declared volatile)
                 exc_sp = MP_CODE_STATE_EXC_SP_IDX_TO_PTR(exc_stack, code_state->exc_sp_idx); // stack grows up, exc_sp points to top of stack
                 goto unwind_loop;
-
             #endif
             } else {
-                // propagate exception to higher level
-                // Note: ip and sp don't have usable values at this point
+                #ifdef ORB_ENABLE_EXIT_STATUS
+                    mp_obj_type_t *exception_type = mp_obj_get_type(MP_OBJ_FROM_PTR(nlr.ret_val));
+
+                    char *error_type = qstr_str(exception_type->name);
+
+                    mp_obj_t exception = MP_OBJ_FROM_PTR(nlr.ret_val);
+
+                    const char *exception_message = "";
+                    if (mp_obj_is_str(mp_obj_exception_get_value(exception))) {
+                     exception_message = mp_obj_str_get_str(mp_obj_exception_get_value(exception));
+                    }
+
+                    size_t len_error_type = strlen(error_type);
+                    size_t len_exception_message = strlen(exception_message);
+
+                    size_t total_len = len_error_type + len_exception_message + 3; // 3 for ": " and '\0'
+
+
+                    if(total_len > 0){
+                        char *error_combined = malloc(total_len);
+                        strcpy(error_combined, error_type);
+                        strcat(error_combined, ": ");
+                        strcat(error_combined, exception_message);
+
+                        if (MP_STATE_VM(orb_exit_message)) {
+                            free(MP_STATE_VM(orb_exit_message));
+                        }
+                        MP_STATE_VM(orb_exit_message) = error_combined;
+                    }else{
+                        char *error_combined = "ErrorTypeMissing";
+                        if (MP_STATE_VM(orb_exit_message)) {
+                            free(MP_STATE_VM(orb_exit_message));
+                        }
+                        MP_STATE_VM(orb_exit_message) = error_combined;
+                    }
+
+                    if(!MP_STATE_VM(orb_interrupt_injected)){
+                        MP_STATE_VM(orb_exit_status) = ORB_EXIT_EXCEPTION;
+                    }
+                #endif
+
                 code_state->state[0] = MP_OBJ_FROM_PTR(nlr.ret_val); // put exception here because sp is invalid
+                // Assuming nlr.ret_val holds the exception object
+
                 FRAME_LEAVE();
                 return MP_VM_RETURN_EXCEPTION;
             }

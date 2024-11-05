@@ -83,5 +83,6 @@ typedef struct _gc_info_t {
 void gc_info(gc_info_t *info);
 void gc_dump_info(const mp_print_t *print);
 void gc_dump_alloc_table(const mp_print_t *print);
+void check_heap_and_trigger_gc(void);
 
 #endif // MICROPY_INCLUDED_PY_GC_H

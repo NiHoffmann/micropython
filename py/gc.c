@@ -1274,4 +1274,42 @@ void gc_dump_alloc_table(const mp_print_t *print) {
     GC_EXIT();
 }
 
+#ifdef ORB_ENABLED_AUTOMATIC_GC
+    #ifndef ORB_AUTOMATIC_GC_THRESHOLD_IN_PERCENT
+    #define ORB_AUTOMATIC_GC_THRESHOLD_IN_PERCENT (90)
+    #endif // ORB_AUTOMATIC_GC_THRESHOLD_IN_PERCENT
+
+    #ifndef ORB_AUTOMATIC_GC_VM_RESERVED_BYTE
+    #define ORB_AUTOMATIC_GC_VM_RESERVED_BYTE (512)
+    #endif
+
+
+    static size_t heap_usage_threshold = 0;
+
+    void initialize_heap_threshold(size_t heap_size) {
+        heap_usage_threshold = (size_t)((float)heap_size * ((float)ORB_AUTOMATIC_GC_THRESHOLD_IN_PERCENT / 100.0) - ORB_AUTOMATIC_GC_VM_RESERVED_BYTE);
+    }
+
+    size_t getUsedMemory(void){
+        static gc_info_t info;
+        gc_info(&info);
+        return info.used;
+    }
+
+    void check_heap_and_trigger_gc(void) {
+        printf("threshold: %d\n",heap_usage_threshold);
+        printf("used : %d\n",getUsedMemory());
+        if (getUsedMemory() > heap_usage_threshold) {
+            gc_collect();
+            printf("============== collected ================\n");
+            #ifdef ORB_ABORT_ON_GC_COLLECT_FAIL
+                if(getUsedMemory() > (ORB_AUTOMATIC_GC_VM_RESERVED_BYTE * 8)){
+                    MP_STATE_VM(orb_gc_abort) = true;
+                    MP_STATE_VM(orb_interrupt) = true;
+                }
+            #endif
+        }
+    }
+#endif
+
 #endif // MICROPY_ENABLE_GC
