@@ -29,65 +29,9 @@
 #include "mpconfigport.h"
 #include "mphalport.h"
 
-#ifdef ORB_ENABLE_MONITOR_STD_OUT
-    #include "Monitor_C_Interface.h"
-#endif
+#include "Monitor_C_Interface.h"
 
-
-#ifdef ORB_ENABLE_MONITOR_STD_OUT
-    #define WIDTH (31)
-    #define HEIGHT (4)
-
-    static char out[HEIGHT][WIDTH];
-    static uint8_t pointer_width = 0;
-    static uint8_t pointer_height = 0;
-    static uint8_t current_length = 0;
-
-    void reset_std_out(){
-        pointer_width = 0;
-        pointer_height = 0;
-        current_length = 0;
-    }
-#endif
 //Send string of given length to stdout, converting \n to \r\n.
 void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
-    #ifdef ORB_ENABLE_MONITOR_STD_OUT
-        for(int i=0;i<len;i++){
-            if(str[i] == '\n'){
-                if(current_length > 0){
-                    setMonitorText(pointer_height, (const char*)out[pointer_height], current_length);
-                }
-                //new line
-                pointer_height = (pointer_height + 1) % HEIGHT;
-                pointer_width = 0;
-                current_length = 0;
-                continue;
-            }
-
-            if(str[i] == '\r'){
-                if(current_length > 0){
-                    setMonitorText(pointer_height, (const char*)out[pointer_height], current_length);
-                }
-                //carrier return
-                pointer_width = 0;
-                current_length = 0;
-                continue;
-            }
-            out[pointer_height][pointer_width] = str[i];
-            current_length++;
-
-            pointer_width = (pointer_width+1)%WIDTH;
-            if(pointer_width == 0){
-                setMonitorText(pointer_height, (const char*)out[pointer_height], current_length);
-                pointer_height = (pointer_height + 1) % HEIGHT;
-                current_length = 0;
-            }
-        }
-
-        if(current_length > 0){
-            setMonitorText(pointer_height, (const char*)out[pointer_height], current_length);
-        }
-    #else
-        printf("%.*s", (int)len, str);
-    #endif
+    setMonitorText(0, str, len);
 }
